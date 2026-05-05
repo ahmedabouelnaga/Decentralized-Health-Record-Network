@@ -518,6 +518,154 @@ Expected response:
 
 ---
 
+## Sepolia Testnet Deployment
+
+This section walks you through deploying the contract to Sepolia and running the full stack against a public testnet instead of a local Anvil node.
+
+---
+
+### Step 1 — Get a Sepolia RPC URL (Alchemy)
+
+1. Go to https://alchemy.com and create a free account
+2. Click **"Create new app"**
+3. Select **Ethereum** → **Ethereum Sepolia**
+4. Give it any name (e.g. `HealthRegistry`)
+5. Click your app → click **"API Key"**
+6. Copy the **HTTPS** URL — it looks like:
+   ```
+   https://eth-sepolia.g.alchemy.com/v2/your-api-key-here
+   ```
+
+> You only need the RPC URL from Alchemy. Do not enter your private key anywhere on their site.
+
+---
+
+### Step 2 — Get a deployer wallet private key
+
+You need a wallet with Sepolia ETH to pay for gas.
+
+1. Open MetaMask → click the round account icon → **"Add account or hardware wallet"** → **"Add a new account"**
+2. Name it `Sepolia Deployer`
+3. Click the three dots on that account → **Account details** → **Show private key** → enter your MetaMask password
+4. Copy the private key (starts with `0x`)
+
+> Use a dedicated account — never use a wallet that holds real ETH.
+
+---
+
+### Step 3 — Fund the deployer wallet with Sepolia ETH
+
+1. Copy your deployer wallet address from MetaMask
+2. Go to https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+3. Paste your address and click **Send** — you'll receive free Sepolia ETH
+4. Alternative faucet: https://sepoliafaucet.com
+
+Wait ~30 seconds for the ETH to arrive before deploying.
+
+---
+
+### Step 4 — Deploy the contract
+
+```bash
+cd contracts
+PRIVATE_KEY=0xYOUR_DEPLOYER_PRIVATE_KEY forge script script/Deploy.s.sol --rpc-url https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY --broadcast
+```
+
+> **Important:** Write this as a single line with no line breaks.
+
+The output will print:
+```
+HealthRegistry deployed at: 0xABC123...
+```
+
+Copy that contract address — you'll need it in the next step.
+
+---
+
+### Step 5 — Update all three `.env` files
+
+**`hospital-server/.env`:**
+```
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+CONTRACT_ADDRESS=0xYOUR_DEPLOYED_CONTRACT_ADDRESS
+CHAIN_ID=11155111
+HOSPITAL_PRIVATE_KEY=0xYOUR_DEPLOYER_PRIVATE_KEY
+PORT=4000
+HOSPITAL_ENDPOINT=http://localhost:4000
+```
+
+**`patient-app/.env`:**
+```
+VITE_CONTRACT_ADDRESS=0xYOUR_DEPLOYED_CONTRACT_ADDRESS
+VITE_CHAIN_ID=11155111
+```
+
+**`doctor-app/.env`:**
+```
+VITE_CONTRACT_ADDRESS=0xYOUR_DEPLOYED_CONTRACT_ADDRESS
+VITE_CHAIN_ID=11155111
+VITE_HOSPITAL_SERVER=http://localhost:4000
+```
+
+> Sepolia chain ID is `11155111` — not `31337` (that's Anvil).
+
+---
+
+### Step 6 — Switch MetaMask to Sepolia
+
+1. Click the network selector in MetaMask
+2. Select **Sepolia** from the list (it's built-in, no need to add it manually)
+3. Make sure you're using the wallet that has Sepolia ETH for patient and doctor accounts
+4. Go to a faucet and fund your patient and doctor wallet addresses separately if needed
+
+---
+
+### Step 7 — Restart everything
+
+Stop all running servers and restart:
+
+```bash
+# Terminal 1 — hospital server
+cd hospital-server && npm start
+
+# Terminal 2 — patient app
+cd patient-app && npm run dev
+
+# Terminal 3 — doctor app
+cd doctor-app && npm run dev
+```
+
+---
+
+### Step 8 — Re-register on Sepolia
+
+Since this is a new contract on a new network, all registrations start fresh:
+
+1. Patient app → Connect Wallet (make sure MetaMask is on Sepolia) → Register
+2. Doctor app → Connect Wallet → Register
+3. Hospital server registers itself automatically on startup
+
+Then follow the full **End-to-End User Guide** above (Phases 3–9).
+
+---
+
+### Differences from local Anvil
+
+| | Anvil (local) | Sepolia (testnet) |
+|---|---|---|
+| Transaction speed | Instant | ~12 seconds per block |
+| ETH needed | Free (pre-funded) | Free from faucet |
+| Block explorer | None | https://sepolia.etherscan.io |
+| Chain ID | 31337 | 11155111 |
+| "Waiting for on-chain log" | ~1 second | ~15 seconds |
+
+You can view all your contract transactions at:
+```
+https://sepolia.etherscan.io/address/0xYOUR_DEPLOYED_CONTRACT_ADDRESS
+```
+
+---
+
 ## Package Reference
 
 ### `hospital-server`
