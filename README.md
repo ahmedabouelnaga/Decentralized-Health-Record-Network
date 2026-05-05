@@ -52,10 +52,17 @@ node --version   # must be >= 18
 ### 2. Foundry (Solidity toolchain)
 ```bash
 curl -L https://foundry.paradigm.xyz | bash
-source ~/.zshrc        # or ~/.bashrc / ~/.profile
+```
+
+After the installer finishes, **add Foundry to your PATH** (this step is required — without it `forge` won't be found):
+```bash
+echo 'export PATH="$HOME/.foundry/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 foundryup
 forge --version        # should print forge version
 ```
+
+> If `forge` is still not found in a new terminal, run `source ~/.zshrc` again or open a fresh terminal window.
 
 ### 3. MetaMask browser extension
 Install from https://metamask.io. You will need to add a custom network pointing to your local Anvil node (see Step 2 below).
@@ -77,7 +84,14 @@ cd patient-app && npm install && cd ..
 cd doctor-app && npm install && cd ..
 ```
 
-The contracts use Foundry's built-in dependency management — no separate install step needed for the contract toolchain.
+The contract also requires the `forge-std` library. Install it once:
+```bash
+cd contracts
+forge install foundry-rs/forge-std
+cd ..
+```
+
+This creates `contracts/lib/forge-std/` which the deploy script and tests depend on.
 
 ---
 
@@ -124,15 +138,36 @@ Open five terminals.
 ```bash
 anvil
 ```
-Anvil prints 10 funded accounts with private keys. Note keys at index 0, 1, and 2 — use them for deploying, patient wallet, doctor wallet, and hospital server respectively.
+Anvil prints 10 funded accounts with private keys. The keys are always the same on a fresh start — use the assignment below.
+
+| Role | Key index | Private key |
+|---|---|---|
+| Deployer (forge script) | 0 | `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80` |
+| Patient (MetaMask) | 1 | `0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d` |
+| Hospital server | 2 | `0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a` |
+| Doctor (MetaMask) | 3 | `0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6` |
 
 ### Terminal 2 — Deploy the contract
 ```bash
 cd contracts
-PRIVATE_KEY=<anvil-key-0> forge script script/Deploy.s.sol \
-  --rpc-url http://127.0.0.1:8545 --broadcast
+PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
+  forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
 ```
-Copy the printed contract address into all three `.env` files.
+
+The output will include a line like:
+```
+Deployed HealthRegistry at: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+```
+
+Copy that address into all three `.env` files:
+```bash
+# Replace 0xYOUR_ADDRESS with the printed address
+sed -i '' 's|<deployed contract address>|0xYOUR_ADDRESS|g' \
+  ../hospital-server/.env ../patient-app/.env ../doctor-app/.env
+```
+Or edit the three `.env` files manually.
+
+> On a fresh local Anvil node the address is always `0x5FbDB2315678afecb367f032d93F642f64180aa3` because the deployer account and nonce are deterministic.
 
 ### Terminal 3 — Hospital server
 ```bash
@@ -160,7 +195,9 @@ npm run dev
 - Chain ID: `31337`
 - Currency: `ETH`
 
-Import an Anvil private key into MetaMask (use key index 1 for patient, key index 3 for doctor — do **not** reuse the hospital key).
+Import Anvil keys into MetaMask: go to **MetaMask → Account menu → Import Account → paste the private key**.
+- Import key index 1 (patient) and key index 3 (doctor) — the keys are listed in the table above.
+- Do **not** import the hospital key (index 2) into MetaMask; that key is used by the server only.
 
 ---
 
@@ -172,6 +209,8 @@ forge test -vv
 ```
 
 Expected output: **21 tests pass**.
+
+> Make sure you have run `forge install foundry-rs/forge-std` inside `contracts/` first (see Installation above), otherwise the tests will fail with a "file not found" error.
 
 ---
 
