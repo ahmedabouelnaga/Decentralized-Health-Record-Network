@@ -102,7 +102,12 @@ export default function App() {
     <div>
       <div className="header">
         <h1>Patient Portal</h1>
-        <span className="wallet-info">{wallet.address}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <span className="wallet-info">{wallet.address}</span>
+          <span className="wallet-info" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+            Patient ID: {patientId}
+          </span>
+        </div>
       </div>
       <div className="container">
         <div className="tabs">

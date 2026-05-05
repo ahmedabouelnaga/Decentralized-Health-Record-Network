@@ -88,13 +88,14 @@ export default function App() {
     <div>
       <div className="header">
         <h1>Doctor Portal</h1>
-        <span className="wallet-info">{wallet.address}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+          <span className="wallet-info">{wallet.address}</span>
+          <span className="wallet-info" style={{ fontSize: '0.7rem', opacity: 0.8 }}>
+            Doctor ID: {doctorId}
+          </span>
+        </div>
       </div>
       <div className="container">
-        <div style={{ marginBottom: 16, fontSize: '0.8rem', color: '#374151' }}>
-          <strong>Doctor ID:</strong>{' '}
-          <span className="mono">{doctorId}</span>
-        </div>
 
         <div className="tabs">
           {TABS.map(t => (
