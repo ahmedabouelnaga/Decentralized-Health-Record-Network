@@ -195,9 +195,38 @@ npm run dev
 - Chain ID: `31337`
 - Currency: `ETH`
 
-Import Anvil keys into MetaMask: go to **MetaMask → Account menu → Import Account → paste the private key**.
-- Import key index 1 (patient) and key index 3 (doctor) — the keys are listed in the table above.
-- Do **not** import the hospital key (index 2) into MetaMask; that key is used by the server only.
+### MetaMask — Step-by-step setup
+
+**Add the Anvil network:**
+1. Click the network selector at the top of MetaMask (usually says "Ethereum Mainnet")
+2. Click **"Add a custom network"** (or "Add network manually" at the bottom)
+3. Fill in:
+   - Network name: `Anvil`
+   - New RPC URL: `http://127.0.0.1:8545`
+   - Chain ID: `31337`
+   - Currency symbol: `ETH`
+4. Click **Save** — MetaMask will switch to the Anvil network
+
+**Import the Patient account (key index 1):**
+1. Click the round account icon in the top-right corner of MetaMask
+2. Click **"Add account or hardware wallet"**
+3. Click **"Import account"**
+4. Make sure **"Private Key"** is selected, then paste:
+   ```
+   0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
+   ```
+5. Click **Import**
+6. Rename it `Patient`: click the three dots → Account details → pencil icon
+
+**Import the Doctor account (key index 3):**
+1. Click the round account icon → **"Add account or hardware wallet"** → **"Import account"**
+2. Paste:
+   ```
+   0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
+   ```
+3. Click **Import** and rename it `Doctor`
+
+> Do **not** import the hospital key (index 2) into MetaMask — it is used by the server only.
 
 ---
 
@@ -208,7 +237,7 @@ cd contracts
 forge test -vv
 ```
 
-Expected output: **21 tests pass**.
+Expected output: **19 tests pass**.
 
 > Make sure you have run `forge install foundry-rs/forge-std` inside `contracts/` first (see Installation above), otherwise the tests will fail with a "file not found" error.
 
@@ -238,7 +267,7 @@ All structs, functions, events, and authorization checks match the spec.
 | All 8 events emitted correctly | ✅ |
 | Grant nonce uniqueness (`++_nonce` in `keccak256`) | ✅ |
 
-**Foundry test coverage (21 tests):**
+**Foundry test coverage (19 tests):**
 
 | Test | Covers |
 |---|---|
@@ -334,6 +363,152 @@ Walk through each flow in order after starting the stack:
 ---
 
 ### Items Intentionally Out of Scope (per design §11)
+
+---
+
+## End-to-End User Guide
+
+Follow these steps in order to navigate and test all features of the system.
+
+### Before You Start
+
+Make sure all five terminals are running (see [Running the Stack](#running-the-stack) above):
+- Terminal 1: `anvil`
+- Terminal 2: contract deployed
+- Terminal 3: hospital server (`npm start`)
+- Terminal 4: patient app (`npm run dev` → http://localhost:5173)
+- Terminal 5: doctor app (`npm run dev` → http://localhost:5174)
+
+---
+
+### Phase 1 — Register as Patient
+
+1. Open **http://localhost:5173** in your browser
+2. Make sure MetaMask is on the **Anvil** network and the **Patient** account is selected
+3. Click **Connect Wallet** → approve in MetaMask
+4. Click **Register** → approve the transaction in MetaMask
+5. Your **Patient ID** (`0x...`) appears on screen — **copy and save it**, you'll need it later
+
+---
+
+### Phase 2 — Register as Doctor
+
+1. Open **http://localhost:5174** in a new tab (keep patient app open)
+2. Switch MetaMask to the **Doctor** account
+3. Click **Connect Wallet** → approve
+4. Click **Register** → approve the transaction
+5. Your **Doctor ID** (`0x...`) appears — **copy and save it**
+
+---
+
+### Phase 3 — Hospital Adds a Record
+
+Run this in a terminal (replace `PATIENT_ID` with the ID you saved in Phase 1):
+
+```bash
+curl -X POST http://localhost:4000/records/admin/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientId": "PATIENT_ID",
+    "recordType": "Blood Test",
+    "recordContent": { "hemoglobin": 14.2, "glucose": 95 }
+  }'
+```
+
+Expected response:
+```json
+{ "success": true, "recordKey": "rec_..." }
+```
+
+---
+
+### Phase 4 — Patient Receives the Record
+
+1. Go to **patient app** (http://localhost:5173), switch MetaMask to **Patient**
+2. Click the **Inbox** tab
+3. A **POINTER_HANDOFF** message appears showing record type and timestamp
+4. Click **Accept** → approve the transaction in MetaMask
+5. Click the **Records** tab — the Blood Test entry should now appear with hospital info and date
+
+---
+
+### Phase 5 — Doctor Requests Access
+
+1. Go to **doctor app** (http://localhost:5174), switch MetaMask to **Doctor**
+2. Click the **Request Access** tab
+3. Fill in:
+   - **Patient ID:** paste the patient ID from Phase 1
+   - **Justification:** e.g. `Annual checkup review`
+   - **Record types:** `Blood Test`
+   - **Expiry:** `7` (days)
+4. Click **Send Request** → approve in MetaMask
+
+---
+
+### Phase 6 — Patient Creates a Grant
+
+1. Go to **patient app**, switch MetaMask to **Patient**
+2. Click **Inbox** — an **ACCESS_REQUEST** from the doctor appears showing their justification
+3. Go to the **Grants** tab → click **Create Grant**
+4. Fill in:
+   - **Doctor ID:** paste the doctor ID from Phase 2
+   - **Pointer index:** `0` (the first record)
+   - **Expiry (days):** `7`
+5. Click **Create Grant** → approve in MetaMask
+6. The grant appears in the Grants tab with status **Active**
+
+---
+
+### Phase 7 — Doctor Fetches the Record
+
+1. Go to **doctor app**, switch MetaMask to **Doctor**
+2. Click **My Grants** → click **Refresh**
+3. The grant appears with status **Active**
+4. Click **Fetch Record** → approve the MetaMask signature prompt
+5. The button shows **"Fetching (waiting for on-chain log)…"** — this is expected; the app waits for the hospital to write the audit entry on-chain before showing the record
+6. After a few seconds the record content appears:
+   ```json
+   { "hemoglobin": 14.2, "glucose": 95 }
+   ```
+7. Grant status changes to **Used**
+
+---
+
+### Phase 8 — Check the Audit Log
+
+1. Go to **patient app** → click **Audit Log** tab
+2. You should see two entries:
+   - 🟠 **Tier 1** (orange) — "Metadata disclosed (grant created)" — logged when you created the grant
+   - 🔵 **Tier 2** (blue) — "Record fetched (content access)" — logged when the doctor fetched the record
+
+---
+
+### Phase 9 — Test Revocation
+
+1. Add a second record via curl (same command as Phase 3, change `recordType` to `"X-Ray"`)
+2. Accept it in the patient **Inbox**, then create a new grant for the doctor (pointer index `1`)
+3. **Before** the doctor fetches — go to patient app → **Grants** → click **Revoke** on the new grant
+4. Go to doctor app → **My Grants** → Refresh → click **Fetch Record** on the revoked grant
+5. You should see the error: **"grant revoked"**
+
+---
+
+### What a Passing Test Looks Like
+
+| Phase | Expected Result |
+|---|---|
+| Patient registers | Patient ID appears on screen |
+| Doctor registers | Doctor ID appears on screen |
+| Hospital adds record | `{ "success": true, "recordKey": "rec_..." }` |
+| Patient inbox | POINTER_HANDOFF message appears |
+| Patient accepts handoff | Record shows in Records tab |
+| Doctor sends request | ACCESS_REQUEST appears in patient inbox |
+| Patient creates grant | Grant appears as Active |
+| Doctor fetches record | Record displays after on-chain log confirmation |
+| Audit log | Tier 1 (orange) + Tier 2 (blue) entries both present |
+| Revocation test | Fetch returns "grant revoked" error |
+
+---
 
 | Item | Note |
 |---|---|
