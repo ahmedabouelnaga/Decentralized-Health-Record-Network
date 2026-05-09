@@ -6,19 +6,22 @@ A mock system for locating and accessing patient medical records across hospital
 
 ## Live Demo (Sepolia Testnet)
 
-The web apps are deployed and live. No local setup needed to use them:
+The web apps are deployed and live. No local setup needed to use them (although if you would like to do that, steps are provided separately further below):
 
 | App | URL |
 |---|---|
 | Patient Portal | https://dhrn-patient-portal.vercel.app/ |
 | Doctor Portal | https://dhrn-doctor-portal.vercel.app/ |
-| Smart Contract | https://sepolia.etherscan.io/address/0x632Fe22aE32AdD385D2297B32714bB7F1f86D486 |
+| Smart Contract | https://sepolia.etherscan.io/address/0x31C8AA1b256F8ccc69dd114A6D0332Fc114520ED |
+
+**You will need to download the Metamask extension on your browser of choice for both the online and local demos. Follow instructions in https://metamask.io/.**
+
 
 > **Requirements to use the live apps:**
 > - MetaMask browser extension installed
 > - MetaMask switched to the **Sepolia** network
 > - A wallet funded with a small amount of Sepolia ETH (free from a faucet — see below)
-> - The hospital server running locally (see [Running the Hospital Server](#running-the-hospital-server-for-live-demo))
+
 
 ---
 
@@ -27,7 +30,7 @@ The web apps are deployed and live. No local setup needed to use them:
 | Component | Description | URL / Port |
 |---|---|---|
 | `contracts/` | Solidity smart contract + Foundry tests | Deployed on Sepolia |
-| `hospital-server/` | Node/Express server; stores records, serves fetch requests | localhost:4000 |
+| `hospital-server/` | Node/Express server; stores records, serves fetch requests | https://decentralized-health-record-network.onrender.com |
 | `patient-app/` | React app; patient registration, inbox, grants, audit log | https://dhrn-patient-portal.vercel.app/ |
 | `doctor-app/` | React app; doctor registration, grant list, record fetching | https://dhrn-doctor-portal.vercel.app/ |
 | `shared/` | Shared contract ABI used by all three runtime components | — |
@@ -87,7 +90,7 @@ Install from https://metamask.io. You will need to add a custom network pointing
 
 ---
 
-## Installation
+## Installation (if you are running locally)
 
 Install npm dependencies for each component:
 
@@ -471,6 +474,17 @@ Follow these steps in order to navigate and test all features of the system.
 ### Phase 3 — Hospital Adds a Record
 
 Run this in a terminal (replace `PATIENT_ID` with the ID you saved in Phase 1):
+
+```bash
+curl -X POST https://decentralized-health-record-network.onrender.com/records/admin/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "patientId": "PATIENT_ID",
+    "recordType": "Blood Test",
+    "recordContent": { "hemoglobin": 14.2, "glucose": 95 }
+  }'
+```
+If running locally, run
 
 ```bash
 curl -X POST http://localhost:4000/records/admin/add \
