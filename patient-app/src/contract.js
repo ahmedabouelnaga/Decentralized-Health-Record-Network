@@ -2,6 +2,8 @@ import { ethers } from 'ethers';
 import ABI from '../../shared/abi.json';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
+const DEPLOYMENT_BLOCK = Number(import.meta.env.VITE_DEPLOYMENT_BLOCK ?? 0);
+const LOG_QUERY_BLOCK_SPAN = Number(import.meta.env.VITE_LOG_QUERY_BLOCK_SPAN ?? 10);
 
 const EIP712_DOMAIN = {
   name: 'HealthRegistry',
@@ -21,6 +23,20 @@ export const MSG_ACCESS_REQUEST = ethers.encodeBytes32String('ACCESS_REQUEST');
 
 export function getContract(signerOrProvider) {
   return new ethers.Contract(CONTRACT_ADDRESS, ABI, signerOrProvider);
+}
+
+async function queryFilterInChunks(provider, contract, filter) {
+  const latest = await provider.getBlockNumber();
+  const from = Math.min(DEPLOYMENT_BLOCK, latest);
+  const span = Math.max(1, LOG_QUERY_BLOCK_SPAN);
+  const events = [];
+
+  for (let start = from; start <= latest; start += span) {
+    const end = Math.min(start + span - 1, latest);
+    events.push(...await contract.queryFilter(filter, start, end));
+  }
+
+  return events;
 }
 
 export async function connectWallet() {
@@ -120,13 +136,13 @@ export async function getHospitalInfo(provider, hospitalId) {
 export async function queryGrantsForPatient(provider, patientId) {
   const contract = getContract(provider);
   const filter = contract.filters.GrantCreated(null, patientId);
-  return contract.queryFilter(filter);
+  return queryFilterInChunks(provider, contract, filter);
 }
 
 export async function queryAccessLogs(provider, patientId) {
   const contract = getContract(provider);
   const filter = contract.filters.AccessLogged(null, patientId);
-  return contract.queryFilter(filter);
+  return queryFilterInChunks(provider, contract, filter);
 }
 
 export async function subscribeToMessages(provider, patientId, onMessage) {
@@ -141,5 +157,5 @@ export async function subscribeToMessages(provider, patientId, onMessage) {
 export async function pastMessages(provider, patientId) {
   const contract = getContract(provider);
   const filter = contract.filters.EncryptedMessage(patientId);
-  return contract.queryFilter(filter);
+  return queryFilterInChunks(provider, contract, filter);
 }

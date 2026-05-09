@@ -1,0 +1,9 @@
+.env
+node_modules/
+dist/
+
+# Foundry build and deployment artifacts
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/foundry.lock

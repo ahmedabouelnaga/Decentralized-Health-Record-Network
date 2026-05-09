@@ -70,9 +70,15 @@ export default function GrantList({ provider, signer, doctorId, identity }) {
         throw new Error(body.error || resp.statusText);
       }
 
-      await waitPromise;
+      const { record, logTxHash } = await resp.json();
 
-      const { record } = await resp.json();
+      try {
+        await waitPromise;
+      } catch (eventErr) {
+        if (!logTxHash) throw eventErr;
+        await provider.waitForTransaction(logTxHash);
+      }
+
       setRecords(r => ({ ...r, [key]: record }));
     } catch (e) {
       setErrors(err => ({ ...err, [key]: e.message }));
