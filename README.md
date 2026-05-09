@@ -4,14 +4,32 @@ A mock system for locating and accessing patient medical records across hospital
 
 ---
 
+## Live Demo (Sepolia Testnet)
+
+The web apps are deployed and live. No local setup needed to use them:
+
+| App | URL |
+|---|---|
+| Patient Portal | https://dhrn-patient-portal.vercel.app/ |
+| Doctor Portal | https://dhrn-doctor-portal.vercel.app/ |
+| Smart Contract | https://sepolia.etherscan.io/address/0x632Fe22aE32AdD385D2297B32714bB7F1f86D486 |
+
+> **Requirements to use the live apps:**
+> - MetaMask browser extension installed
+> - MetaMask switched to the **Sepolia** network
+> - A wallet funded with a small amount of Sepolia ETH (free from a faucet — see below)
+> - The hospital server running locally (see [Running the Hospital Server](#running-the-hospital-server-for-live-demo))
+
+---
+
 ## Components
 
-| Component | Description | Port |
+| Component | Description | URL / Port |
 |---|---|---|
-| `contracts/` | Solidity smart contract + Foundry tests | — |
-| `hospital-server/` | Node/Express server; stores records, serves fetch requests | 4000 |
-| `patient-app/` | React app; patient registration, inbox, grants, audit log | 5173 |
-| `doctor-app/` | React app; doctor registration, grant list, record fetching | 5174 |
+| `contracts/` | Solidity smart contract + Foundry tests | Deployed on Sepolia |
+| `hospital-server/` | Node/Express server; stores records, serves fetch requests | localhost:4000 |
+| `patient-app/` | React app; patient registration, inbox, grants, audit log | https://dhrn-patient-portal.vercel.app/ |
+| `doctor-app/` | React app; doctor registration, grant list, record fetching | https://dhrn-doctor-portal.vercel.app/ |
 | `shared/` | Shared contract ABI used by all three runtime components | — |
 
 ---
@@ -130,7 +148,53 @@ VITE_HOSPITAL_SERVER=http://localhost:4000
 
 ---
 
-## Running the Stack
+## Running the Hospital Server for Live Demo
+
+The patient and doctor apps are already deployed on Vercel and talk to the Sepolia contract automatically. The only thing you need to run locally is the **hospital server**, since it holds the hospital private key and record store.
+
+### Step 1 — Configure `hospital-server/.env` for Sepolia
+
+```
+RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+CONTRACT_ADDRESS=0x632Fe22aE32AdD385D2297B32714bB7F1f86D486
+CHAIN_ID=11155111
+HOSPITAL_PRIVATE_KEY=0xYOUR_WALLET_PRIVATE_KEY
+PORT=4000
+HOSPITAL_ENDPOINT=http://localhost:4000
+```
+
+> The hospital wallet must have Sepolia ETH. Get some free from https://cloud.google.com/application/web3/faucet/ethereum/sepolia
+
+### Step 2 — Start the hospital server
+
+```bash
+cd hospital-server
+npm install   # first time only
+npm start
+```
+
+You should see:
+```
+Registering hospital with pubKey: 0x04...
+Hospital registered, id: 0x...
+Hospital server running on port 4000
+```
+
+### Step 3 — Set up MetaMask for Sepolia
+
+1. Open MetaMask → click the network selector → select **Sepolia**
+2. If you don't have Sepolia ETH, go to https://cloud.google.com/application/web3/faucet/ethereum/sepolia and paste your wallet address
+3. You need **two separate accounts** in MetaMask — one for patient, one for doctor (they must be different wallets)
+
+### Step 4 — Use the live apps
+
+- Open https://dhrn-patient-portal.vercel.app/ with your **Patient** MetaMask account active
+- Open https://dhrn-doctor-portal.vercel.app/ in another tab with your **Doctor** MetaMask account active
+- Follow the [End-to-End User Guide](#end-to-end-user-guide) below
+
+---
+
+## Running the Stack Locally (Anvil)
 
 Open five terminals.
 
@@ -372,19 +436,22 @@ Follow these steps in order to navigate and test all features of the system.
 
 ### Before You Start
 
-Make sure all five terminals are running (see [Running the Stack](#running-the-stack) above):
-- Terminal 1: `anvil`
-- Terminal 2: contract deployed
-- Terminal 3: hospital server (`npm start`)
-- Terminal 4: patient app (`npm run dev` → http://localhost:5173)
-- Terminal 5: doctor app (`npm run dev` → http://localhost:5174)
+**Using the live deployment (recommended):**
+- Hospital server running locally (`npm start` in `hospital-server/`)
+- MetaMask on **Sepolia** with two funded accounts (patient + doctor)
+- Patient app: https://dhrn-patient-portal.vercel.app/
+- Doctor app: https://dhrn-doctor-portal.vercel.app/
+
+**Using local Anvil instead:**
+- All five terminals running (see [Running the Stack Locally](#running-the-stack-locally-anvil) above)
+- MetaMask on **Anvil** network with patient (key 1) and doctor (key 3) accounts imported
 
 ---
 
 ### Phase 1 — Register as Patient
 
-1. Open **http://localhost:5173** in your browser
-2. Make sure MetaMask is on the **Anvil** network and the **Patient** account is selected
+1. Open **https://dhrn-patient-portal.vercel.app/** in your browser (or http://localhost:5173 if running locally)
+2. Make sure MetaMask is on the **Sepolia** network (or Anvil if running locally) and the **Patient** account is selected
 3. Click **Connect Wallet** → approve in MetaMask
 4. Click **Register** → approve the transaction in MetaMask
 5. Your **Patient ID** (`0x...`) appears on screen — **copy and save it**, you'll need it later
@@ -393,7 +460,7 @@ Make sure all five terminals are running (see [Running the Stack](#running-the-s
 
 ### Phase 2 — Register as Doctor
 
-1. Open **http://localhost:5174** in a new tab (keep patient app open)
+1. Open **https://dhrn-doctor-portal.vercel.app/** in a new tab (or http://localhost:5174 if running locally)
 2. Switch MetaMask to the **Doctor** account
 3. Click **Connect Wallet** → approve
 4. Click **Register** → approve the transaction
@@ -424,7 +491,7 @@ Expected response:
 
 ### Phase 4 — Patient Receives the Record
 
-1. Go to **patient app** (http://localhost:5173), switch MetaMask to **Patient**
+1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/), switch MetaMask to **Patient**
 2. Click the **Inbox** tab
 3. A **POINTER_HANDOFF** message appears showing record type and timestamp
 4. Click **Accept** → approve the transaction in MetaMask
@@ -434,7 +501,7 @@ Expected response:
 
 ### Phase 5 — Doctor Requests Access
 
-1. Go to **doctor app** (http://localhost:5174), switch MetaMask to **Doctor**
+1. Go to **doctor app** (https://dhrn-doctor-portal.vercel.app/), switch MetaMask to **Doctor**
 2. Click the **Request Access** tab
 3. Fill in:
    - **Patient ID:** paste the patient ID from Phase 1
@@ -447,7 +514,7 @@ Expected response:
 
 ### Phase 6 — Patient Creates a Grant
 
-1. Go to **patient app**, switch MetaMask to **Patient**
+1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/), switch MetaMask to **Patient**
 2. Click **Inbox** — an **ACCESS_REQUEST** from the doctor appears showing their justification
 3. Go to the **Grants** tab → click **Create Grant**
 4. Fill in:
@@ -461,12 +528,12 @@ Expected response:
 
 ### Phase 7 — Doctor Fetches the Record
 
-1. Go to **doctor app**, switch MetaMask to **Doctor**
+1. Go to **doctor app** (https://dhrn-doctor-portal.vercel.app/), switch MetaMask to **Doctor**
 2. Click **My Grants** → click **Refresh**
 3. The grant appears with status **Active**
 4. Click **Fetch Record** → approve the MetaMask signature prompt
-5. The button shows **"Fetching (waiting for on-chain log)…"** — this is expected; the app waits for the hospital to write the audit entry on-chain before showing the record
-6. After a few seconds the record content appears:
+5. The button shows **"Fetching (waiting for on-chain log)…"** — this is expected; the app waits for the hospital to write the audit entry on-chain before showing the record. On Sepolia this takes ~15 seconds; on local Anvil it's near-instant.
+6. After confirmation the record content appears:
    ```json
    { "hemoglobin": 14.2, "glucose": 95 }
    ```
@@ -476,7 +543,7 @@ Expected response:
 
 ### Phase 8 — Check the Audit Log
 
-1. Go to **patient app** → click **Audit Log** tab
+1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/) → click **Audit Log** tab
 2. You should see two entries:
    - 🟠 **Tier 1** (orange) — "Metadata disclosed (grant created)" — logged when you created the grant
    - 🔵 **Tier 2** (blue) — "Record fetched (content access)" — logged when the doctor fetched the record
