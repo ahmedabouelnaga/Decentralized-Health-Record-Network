@@ -40,7 +40,7 @@ The web apps are deployed and live. No local setup needed to use them (although 
 ## Prerequisites
 
 
-### 0. nvm — Node Version Manager (recommended first step) --> kinda works like a python virtual environment but for Node.
+### 0. nvm — Node Version Manager (recommended first step)
 
 **macOS / Linux:**
 ```bash
@@ -148,52 +148,6 @@ VITE_CONTRACT_ADDRESS=<deployed contract address>
 VITE_CHAIN_ID=31337
 VITE_HOSPITAL_SERVER=http://localhost:4000
 ```
-
----
-
-## Running the Hospital Server for Live Demo
-
-The patient and doctor apps are already deployed on Vercel and talk to the Sepolia contract automatically. The only thing you need to run locally is the **hospital server**, since it holds the hospital private key and record store.
-
-### Step 1 — Configure `hospital-server/.env` for Sepolia
-
-```
-RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-CONTRACT_ADDRESS=0x632Fe22aE32AdD385D2297B32714bB7F1f86D486
-CHAIN_ID=11155111
-HOSPITAL_PRIVATE_KEY=0xYOUR_WALLET_PRIVATE_KEY
-PORT=4000
-HOSPITAL_ENDPOINT=http://localhost:4000
-```
-
-> The hospital wallet must have Sepolia ETH. Get some free from https://cloud.google.com/application/web3/faucet/ethereum/sepolia
-
-### Step 2 — Start the hospital server
-
-```bash
-cd hospital-server
-npm install   # first time only
-npm start
-```
-
-You should see:
-```
-Registering hospital with pubKey: 0x04...
-Hospital registered, id: 0x...
-Hospital server running on port 4000
-```
-
-### Step 3 — Set up MetaMask for Sepolia
-
-1. Open MetaMask → click the network selector → select **Sepolia**
-2. If you don't have Sepolia ETH, go to https://cloud.google.com/application/web3/faucet/ethereum/sepolia and paste your wallet address
-3. You need **two separate accounts** in MetaMask — one for patient, one for doctor (they must be different wallets)
-
-### Step 4 — Use the live apps
-
-- Open https://dhrn-patient-portal.vercel.app/ with your **Patient** MetaMask account active
-- Open https://dhrn-doctor-portal.vercel.app/ in another tab with your **Doctor** MetaMask account active
-- Follow the [End-to-End User Guide](#end-to-end-user-guide) below
 
 ---
 
@@ -317,10 +271,10 @@ Follow these steps in order to navigate and test all features of the system.
 ### Before You Start
 
 **Using the live deployment (recommended):**
-- Hospital server running locally (`npm start` in `hospital-server/`)
 - MetaMask on **Sepolia** with two funded accounts (patient + doctor)
 - Patient app: https://dhrn-patient-portal.vercel.app/
 - Doctor app: https://dhrn-doctor-portal.vercel.app/
+- Hospital server: already running at https://decentralized-health-record-network.onrender.com — no setup needed
 
 **Using local Anvil instead:**
 - All five terminals running (see [Running the Stack Locally](#running-the-stack-locally-anvil) above)
@@ -446,7 +400,7 @@ Expected response:
 1. Add a second record via curl (same command as Phase 3, change `recordType` to `"X-Ray"`)
 2. Accept it in the patient **Inbox**, then create a new grant for the doctor
 3. **Before** the doctor fetches — go to patient app → **Grants** → click **Revoke** on the new grant
-4. Go to doctor app → **My Grants** → Refresh → click **Fetch Record** on the revoked grant
+4. Go to doctor app → **My Grants** → Refresh → click **View Records** on the revoked grant → click **Fetch Record**
 5. You should see the error: **"grant revoked"**
 
 ---
@@ -465,14 +419,6 @@ Expected response:
 | Doctor fetches record | Record displays after on-chain log confirmation |
 | Audit log | Tier 1 (orange) + Tier 2 (blue) entries both present |
 | Revocation test | Fetch returns "grant revoked" error |
-
----
-
-| Item | Note |
-|---|---|
-| Hospital misbehavior commitments / `accuse` function | Explicitly descoped as future work |
-| ERC-2771 meta-tx relayer for `postMessage` sender privacy | Noted as acceptable for this milestone |
-| Passphrase-encrypted private key in browser storage | Security recommendation only |
 
 ---
 
