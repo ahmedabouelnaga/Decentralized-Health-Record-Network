@@ -274,7 +274,7 @@ Follow these steps in order to navigate and test all features of the system.
 - MetaMask on **Sepolia** with two funded accounts (patient + doctor)
 - Patient app: https://dhrn-patient-portal.vercel.app/
 - Doctor app: https://dhrn-doctor-portal.vercel.app/
-- Hospital server: already running at https://decentralized-health-record-network.onrender.com — no setup needed
+- Hospital server: https://decentralized-health-record-network.onrender.com
 
 **Using local Anvil instead:**
 - All five terminals running (see [Running the Stack Locally](#running-the-stack-locally-anvil) above)
