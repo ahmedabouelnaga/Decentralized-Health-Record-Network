@@ -2,20 +2,20 @@ import { useState, useEffect } from 'react';
 import {
   queryGrantsForDoctor,
   getGrant,
-  getHospitalInfo,
   signFetchRequest,
   waitForAccessLogged,
 } from '../contract.js';
 import { eciesDecrypt, hexToBytes } from '../crypto.js';
-import { ethers } from 'ethers';
 
 const HOSPITAL_SERVER = import.meta.env.VITE_HOSPITAL_SERVER || 'http://localhost:4000';
 
 export default function GrantList({ provider, signer, doctorId, identity }) {
   const [grants, setGrants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [fetching, setFetching] = useState(null);
+  const [decryptedPointers, setDecryptedPointers] = useState({});
+  const [decrypting, setDecrypting] = useState(null);
   const [records, setRecords] = useState({});
+  const [fetching, setFetching] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => { load(); }, [doctorId]);
@@ -38,20 +38,34 @@ export default function GrantList({ provider, signer, doctorId, identity }) {
     }
   }
 
-  async function handleFetch(grant) {
-    const key = grant.grantId;
-    setFetching(key);
-    setErrors(e => ({ ...e, [key]: null }));
+  async function handleDecrypt(grant) {
+    const grantKey = grant.grantId;
+    setDecrypting(grantKey);
+    setErrors(e => ({ ...e, [grantKey]: null }));
     try {
-      const ptrBytes = hexToBytes(grant.encryptedPointerForDoctor);
-      const pointerJson = await eciesDecrypt(identity.privateKey, ptrBytes);
-      const pointer = JSON.parse(pointerJson);
+      const pointers = await Promise.all(
+        grant.encryptedPointersForDoctor.map(async (encPtr, i) => {
+          const ptrBytes = hexToBytes(encPtr);
+          const pointerJson = await eciesDecrypt(identity.privateKey, ptrBytes);
+          const pointer = JSON.parse(pointerJson);
+          return { pointer, index: i };
+        })
+      );
+      setDecryptedPointers(p => ({ ...p, [grantKey]: pointers }));
+    } catch (e) {
+      setErrors(err => ({ ...err, [grantKey]: e.message }));
+    } finally {
+      setDecrypting(null);
+    }
+  }
 
-      const { endpoint } = await getHospitalInfo(provider, grant.hospitalId);
-      const hospitalUrl = pointer.hospitalEndpoint || endpoint || HOSPITAL_SERVER;
-
+  async function handleFetch(grant, pointer) {
+    const recKey = `${grant.grantId}:${pointer.recordKey}`;
+    setFetching(recKey);
+    setErrors(e => ({ ...e, [recKey]: null }));
+    try {
+      const hospitalUrl = pointer.hospitalEndpoint || HOSPITAL_SERVER;
       const doctorSig = await signFetchRequest(signer, grant.grantId, pointer.recordKey);
-
       const waitPromise = waitForAccessLogged(provider, grant.grantId);
 
       const resp = await fetch(`${hospitalUrl}/records/fetch`, {
@@ -79,9 +93,9 @@ export default function GrantList({ provider, signer, doctorId, identity }) {
         await provider.waitForTransaction(logTxHash);
       }
 
-      setRecords(r => ({ ...r, [key]: record }));
+      setRecords(r => ({ ...r, [recKey]: record }));
     } catch (e) {
-      setErrors(err => ({ ...err, [key]: e.message }));
+      setErrors(err => ({ ...err, [recKey]: e.message }));
     } finally {
       setFetching(null);
     }
@@ -89,13 +103,12 @@ export default function GrantList({ provider, signer, doctorId, identity }) {
 
   function grantStatus(g) {
     if (g.revoked) return <span className="badge badge-red">Revoked</span>;
-    if (g.used) return <span className="badge badge-yellow">Used</span>;
     if (BigInt(Math.floor(Date.now() / 1000)) > g.expiry) return <span className="badge badge-red">Expired</span>;
     return <span className="badge badge-green">Active</span>;
   }
 
-  function canFetch(g) {
-    return !g.revoked && !g.used && BigInt(Math.floor(Date.now() / 1000)) <= g.expiry;
+  function canAccess(g) {
+    return !g.revoked && BigInt(Math.floor(Date.now() / 1000)) <= g.expiry;
   }
 
   if (loading) return <div className="card empty">Loading grants…</div>;
@@ -109,44 +122,76 @@ export default function GrantList({ provider, signer, doctorId, identity }) {
       </div>
 
       {grants.map((g) => {
-        const key = g.grantId;
-        const record = records[key];
-        const err = errors[key];
+        const grantKey = g.grantId;
+        const ptrs = decryptedPointers[grantKey];
+        const grantErr = errors[grantKey];
 
         return (
-          <div key={key} className="card">
+          <div key={grantKey} className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div>
-                <span className="mono" style={{ fontSize: '0.8rem' }}>
-                  {g.grantId.slice(0, 20)}…
-                </span>
-              </div>
+              <span className="mono" style={{ fontSize: '0.8rem' }}>
+                {g.grantId.slice(0, 20)}…
+              </span>
               {grantStatus(g)}
             </div>
 
             <div style={{ fontSize: '0.8rem', color: '#374151', marginBottom: 12 }}>
               <p><strong>Patient:</strong> <span className="mono">{g.patientId.slice(0, 20)}…</span></p>
-              <p><strong>Hospital:</strong> <span className="mono">{g.hospitalId.slice(0, 20)}…</span></p>
+              <p><strong>Records:</strong> {g.encryptedPointersForDoctor.length}</p>
               <p><strong>Expires:</strong> {new Date(Number(g.expiry) * 1000).toLocaleString()}</p>
             </div>
 
-            {err && <div className="alert alert-error">{err}</div>}
+            {grantErr && <div className="alert alert-error">{grantErr}</div>}
 
-            {record ? (
-              <div className="record-view">
-                <p style={{ fontWeight: 600, marginBottom: 8 }}>Record Content</p>
-                <pre>{JSON.stringify(record, null, 2)}</pre>
-              </div>
-            ) : canFetch(g) && (
+            {canAccess(g) && !ptrs && (
               <button
-                className="btn btn-primary"
-                onClick={() => handleFetch(g)}
-                disabled={fetching === key}
+                className="btn btn-secondary"
+                onClick={() => handleDecrypt(g)}
+                disabled={decrypting === grantKey}
               >
-                {fetching === key ? (
-                  <><span className="spinner" />Fetching (waiting for on-chain log)…</>
-                ) : 'Fetch Record'}
+                {decrypting === grantKey
+                  ? <><span className="spinner" />Decrypting…</>
+                  : 'View Records'}
               </button>
+            )}
+
+            {ptrs && (
+              <div>
+                <p style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: 8 }}>Available Records</p>
+                {ptrs.map(({ pointer, index }) => {
+                  const recKey = `${grantKey}:${pointer.recordKey}`;
+                  const record = records[recKey];
+                  const recErr = errors[recKey];
+
+                  return (
+                    <div key={index} style={{ borderTop: '1px solid #e5e7eb', paddingTop: 8, marginTop: 8 }}>
+                      <p style={{ fontSize: '0.8rem', color: '#374151', marginBottom: 6 }}>
+                        <strong>Type:</strong> {pointer.recordType ?? '—'} &nbsp;
+                        <strong>Key:</strong> <span className="mono">{pointer.recordKey}</span> &nbsp;
+                        <strong>Date:</strong> {pointer.createdAt ?? '—'}
+                      </p>
+                      {recErr && <div className="alert alert-error">{recErr}</div>}
+                      {record ? (
+                        <div className="record-view">
+                          <p style={{ fontWeight: 600, marginBottom: 8 }}>Record Content</p>
+                          <pre>{JSON.stringify(record, null, 2)}</pre>
+                        </div>
+                      ) : (
+                        <button
+                          className="btn btn-primary"
+                          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+                          onClick={() => handleFetch(g, pointer)}
+                          disabled={fetching === recKey}
+                        >
+                          {fetching === recKey
+                            ? <><span className="spinner" />Fetching…</>
+                            : 'Fetch Record'}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         );

@@ -304,7 +304,7 @@ cd contracts
 forge test -vv
 ```
 
-Expected output: **19 tests pass**.
+Expected output: **18 tests pass**.
 
 > Make sure you have run `forge install foundry-rs/forge-std` inside `contracts/` first (see Installation above), otherwise the tests will fail with a "file not found" error.
 
@@ -410,9 +410,8 @@ Expected response:
 3. Go to the **Grants** tab → click **Create Grant**
 4. Fill in:
    - **Doctor ID:** paste the doctor ID from Phase 2
-   - **Pointer index:** `0` (the first record)
    - **Expiry (days):** `7`
-5. Click **Create Grant** → approve in MetaMask
+5. Click **Create Grant** → approve in MetaMask (this encrypts all your records for the doctor)
 6. The grant appears in the Grants tab with status **Active**
 
 ---
@@ -421,14 +420,15 @@ Expected response:
 
 1. Go to **doctor app** (https://dhrn-doctor-portal.vercel.app/), switch MetaMask to **Doctor**
 2. Click **My Grants** → click **Refresh**
-3. The grant appears with status **Active**
-4. Click **Fetch Record** → approve the MetaMask signature prompt
-5. The button shows **"Fetching (waiting for on-chain log)…"** — this is expected; the app waits for the hospital to write the audit entry on-chain before showing the record. On Sepolia this takes ~15 seconds; on local Anvil it's near-instant.
-6. After confirmation the record content appears:
+3. The grant appears with status **Active** and shows the number of available records
+4. Click **View Records** — the app decrypts the pointer list and shows each record's type, key, and date
+5. Click **Fetch Record** next to the Blood Test entry → approve the MetaMask signature prompt
+6. The button shows **"Fetching…"** — the app waits for the hospital to write the audit entry on-chain before showing the record. On Sepolia this takes ~15 seconds; on local Anvil it's near-instant.
+7. After confirmation the record content appears:
    ```json
    { "hemoglobin": 14.2, "glucose": 95 }
    ```
-7. Grant status changes to **Used**
+8. The grant remains **Active** and can be used again until it expires or is revoked
 
 ---
 
@@ -444,7 +444,7 @@ Expected response:
 ### Phase 9 — Test Revocation
 
 1. Add a second record via curl (same command as Phase 3, change `recordType` to `"X-Ray"`)
-2. Accept it in the patient **Inbox**, then create a new grant for the doctor (pointer index `1`)
+2. Accept it in the patient **Inbox**, then create a new grant for the doctor
 3. **Before** the doctor fetches — go to patient app → **Grants** → click **Revoke** on the new grant
 4. Go to doctor app → **My Grants** → Refresh → click **Fetch Record** on the revoked grant
 5. You should see the error: **"grant revoked"**

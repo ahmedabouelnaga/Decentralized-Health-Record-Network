@@ -35,8 +35,7 @@
     "name": "createGrant",
     "inputs": [
       { "name": "doctorId", "type": "bytes32" },
-      { "name": "hospitalId", "type": "bytes32" },
-      { "name": "encryptedPointerForDoctor", "type": "bytes" },
+      { "name": "encryptedPointersForDoctor", "type": "bytes[]" },
       { "name": "expiry", "type": "uint256" },
       { "name": "patientSig", "type": "bytes" }
     ],
@@ -90,12 +89,10 @@
           { "name": "grantId", "type": "bytes32" },
           { "name": "patientId", "type": "bytes32" },
           { "name": "doctorId", "type": "bytes32" },
-          { "name": "hospitalId", "type": "bytes32" },
-          { "name": "encryptedPointerForDoctor", "type": "bytes" },
+          { "name": "encryptedPointersForDoctor", "type": "bytes[]" },
           { "name": "patientSig", "type": "bytes" },
           { "name": "expiry", "type": "uint256" },
-          { "name": "revoked", "type": "bool" },
-          { "name": "used", "type": "bool" }
+          { "name": "revoked", "type": "bool" }
         ]
       }
     ],
@@ -196,7 +193,6 @@
       { "name": "grantId", "type": "bytes32", "indexed": true },
       { "name": "patientId", "type": "bytes32", "indexed": true },
       { "name": "doctorId", "type": "bytes32", "indexed": true },
-      { "name": "hospitalId", "type": "bytes32", "indexed": false },
       { "name": "expiry", "type": "uint256", "indexed": false }
     ]
   },

@@ -16,7 +16,6 @@ contract HealthRegistryTest is Test {
     bytes constant DOCTOR_PUBKEY   = hex"04eeff1122";
     bytes constant HOSPITAL_PUBKEY = hex"04334455aa";
     bytes constant ENC_POINTER     = hex"deadbeef01020304";
-    bytes constant ENC_POINTER_DOC = hex"cafebabe05060708";
     bytes constant PATIENT_SIG     = hex"aabb";
 
     string constant ENDPOINT = "http://localhost:4000";
@@ -36,6 +35,11 @@ contract HealthRegistryTest is Test {
 
         vm.prank(hospital1);
         hospitalId = registry.registerHospital(HOSPITAL_PUBKEY, ENDPOINT);
+    }
+
+    function _onePointer() internal pure returns (bytes[] memory arr) {
+        arr = new bytes[](1);
+        arr[0] = hex"cafebabe05060708";
     }
 
     function test_RegisterPatient() public view {
@@ -87,35 +91,34 @@ contract HealthRegistryTest is Test {
 
         vm.prank(patient1);
         vm.expectEmit(false, true, true, false);
-        emit HealthRegistry.GrantCreated(bytes32(0), patientId, doctorId, hospitalId, expiry);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, expiry, PATIENT_SIG);
+        emit HealthRegistry.GrantCreated(bytes32(0), patientId, doctorId, expiry);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), expiry, PATIENT_SIG);
 
         HealthRegistry.AccessGrant memory g = registry.getGrant(grantId);
         assertEq(g.patientId, patientId);
         assertEq(g.doctorId, doctorId);
-        assertEq(g.hospitalId, hospitalId);
         assertEq(g.expiry, expiry);
         assertFalse(g.revoked);
-        assertFalse(g.used);
-        assertEq(g.encryptedPointerForDoctor, ENC_POINTER_DOC);
+        assertEq(g.encryptedPointersForDoctor.length, 1);
+        assertEq(g.encryptedPointersForDoctor[0], hex"cafebabe05060708");
         assertEq(g.patientSig, PATIENT_SIG);
     }
 
     function test_CreateGrantUnknownDoctor() public {
         vm.prank(patient1);
         vm.expectRevert("unknown doctor");
-        registry.createGrant(bytes32(uint256(999)), hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        registry.createGrant(bytes32(uint256(999)), _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
     }
 
     function test_CreateGrantPastExpiry() public {
         vm.prank(patient1);
         vm.expectRevert("expiry in past");
-        registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp - 1, PATIENT_SIG);
+        registry.createGrant(doctorId, _onePointer(), block.timestamp - 1, PATIENT_SIG);
     }
 
     function test_RevokeGrant() public {
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
 
         vm.prank(patient1);
         vm.expectEmit(true, false, false, false);
@@ -127,7 +130,7 @@ contract HealthRegistryTest is Test {
 
     function test_RevokeGrantNotOwner() public {
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
 
         vm.prank(attacker);
         vm.expectRevert("not registered as patient");
@@ -136,7 +139,7 @@ contract HealthRegistryTest is Test {
 
     function test_LogAccess() public {
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
 
         bytes32 recordHash = keccak256("record body");
 
@@ -144,26 +147,22 @@ contract HealthRegistryTest is Test {
         vm.expectEmit(true, true, true, true);
         emit HealthRegistry.AccessLogged(grantId, patientId, hospitalId, recordHash);
         registry.logAccess(grantId, recordHash);
-
-        assertEq(registry.getGrant(grantId).used, true);
     }
 
-    function test_LogAccessWrongHospital() public {
-        address hospital2 = address(0x4);
-        vm.prank(hospital2);
-        registry.registerHospital(hex"04deadbeef", "http://other:4000");
-
+    function test_LogAccessMultipleTimes() public {
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
 
-        vm.prank(hospital2);
-        vm.expectRevert("wrong hospital");
-        registry.logAccess(grantId, keccak256("record"));
+        vm.prank(hospital1);
+        registry.logAccess(grantId, keccak256("record1"));
+
+        vm.prank(hospital1);
+        registry.logAccess(grantId, keccak256("record2"));
     }
 
     function test_LogAccessRevoked() public {
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), block.timestamp + 1 days, PATIENT_SIG);
 
         vm.prank(patient1);
         registry.revokeGrant(grantId);
@@ -176,24 +175,12 @@ contract HealthRegistryTest is Test {
     function test_LogAccessExpired() public {
         uint256 expiry = block.timestamp + 1 hours;
         vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, expiry, PATIENT_SIG);
+        bytes32 grantId = registry.createGrant(doctorId, _onePointer(), expiry, PATIENT_SIG);
 
         vm.warp(expiry + 1);
 
         vm.prank(hospital1);
         vm.expectRevert("expired");
-        registry.logAccess(grantId, keccak256("record"));
-    }
-
-    function test_LogAccessAlreadyUsed() public {
-        vm.prank(patient1);
-        bytes32 grantId = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, block.timestamp + 1 days, PATIENT_SIG);
-
-        vm.prank(hospital1);
-        registry.logAccess(grantId, keccak256("record"));
-
-        vm.prank(hospital1);
-        vm.expectRevert("already used");
         registry.logAccess(grantId, keccak256("record"));
     }
 
@@ -223,8 +210,8 @@ contract HealthRegistryTest is Test {
         uint256 expiry = block.timestamp + 1 days;
 
         vm.startPrank(patient1);
-        bytes32 g1 = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, expiry, PATIENT_SIG);
-        bytes32 g2 = registry.createGrant(doctorId, hospitalId, ENC_POINTER_DOC, expiry, PATIENT_SIG);
+        bytes32 g1 = registry.createGrant(doctorId, _onePointer(), expiry, PATIENT_SIG);
+        bytes32 g2 = registry.createGrant(doctorId, _onePointer(), expiry, PATIENT_SIG);
         vm.stopPrank();
 
         assertTrue(g1 != g2);

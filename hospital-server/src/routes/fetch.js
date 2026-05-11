@@ -10,7 +10,6 @@ const DOMAIN_VERSION = '1';
 const PATIENT_GRANT_TYPES = {
   PatientGrantAuth: [
     { name: 'doctorId', type: 'bytes32' },
-    { name: 'hospitalId', type: 'bytes32' },
     { name: 'expiry', type: 'uint256' },
   ],
 };
@@ -30,27 +29,16 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'missing fields' });
     }
 
-    const { hospitalId: pointerHospitalId, recordKey } = recordPointer;
+    const { recordKey } = recordPointer;
 
     const contract = getContract();
-    const myAddress = await contract.runner.getAddress();
-    const myHospitalId = await contract.walletToHospitalId(myAddress);
 
     const grant = await getGrant(grantId);
     if (!grant || grant.grantId === ethers.ZeroHash) {
       return res.status(403).json({ error: 'grant not found' });
     }
-    if (grant.hospitalId !== myHospitalId) {
-      return res.status(403).json({ error: 'grant not for this hospital' });
-    }
-    if (grant.hospitalId !== pointerHospitalId) {
-      return res.status(403).json({ error: 'pointer hospital mismatch' });
-    }
     if (grant.revoked) {
       return res.status(403).json({ error: 'grant revoked' });
-    }
-    if (grant.used) {
-      return res.status(403).json({ error: 'grant already used' });
     }
     if (BigInt(Math.floor(Date.now() / 1000)) > grant.expiry) {
       return res.status(403).json({ error: 'grant expired' });
@@ -68,7 +56,7 @@ router.post('/', async (req, res) => {
     const recoveredPatient = ethers.verifyTypedData(
       domain,
       PATIENT_GRANT_TYPES,
-      { doctorId: grant.doctorId, hospitalId: grant.hospitalId, expiry: grant.expiry },
+      { doctorId: grant.doctorId, expiry: grant.expiry },
       patientSignature
     );
     if (recoveredPatient.toLowerCase() !== patient.wallet.toLowerCase()) {

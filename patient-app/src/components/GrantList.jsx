@@ -43,7 +43,6 @@ export default function GrantList({ provider, signer, patientId }) {
 
   function grantStatus(g) {
     if (g.revoked) return <span className="badge badge-red">Revoked</span>;
-    if (g.used) return <span className="badge badge-yellow">Used</span>;
     if (BigInt(Math.floor(Date.now() / 1000)) > g.expiry) return <span className="badge badge-red">Expired</span>;
     return <span className="badge badge-green">Active</span>;
   }
@@ -74,7 +73,7 @@ export default function GrantList({ provider, signer, patientId }) {
                 <td>{new Date(Number(g.expiry) * 1000).toLocaleDateString()}</td>
                 <td>{grantStatus(g)}</td>
                 <td>
-                  {!g.revoked && !g.used && (
+                  {!g.revoked && (
                     <button
                       className="btn btn-danger"
                       style={{ padding: '4px 10px', fontSize: '0.75rem' }}

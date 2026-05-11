@@ -22,15 +22,13 @@ contract HealthRegistry {
     }
 
     struct AccessGrant {
-        bytes32 grantId;
-        bytes32 patientId;
-        bytes32 doctorId;
-        bytes32 hospitalId;
-        bytes   encryptedPointerForDoctor;
-        bytes   patientSig;
-        uint256 expiry;
-        bool    revoked;
-        bool    used;
+        bytes32   grantId;
+        bytes32   patientId;
+        bytes32   doctorId;
+        bytes[]   encryptedPointersForDoctor;
+        bytes     patientSig;
+        uint256   expiry;
+        bool      revoked;
     }
 
     mapping(bytes32 => Patient)     private _patients;
@@ -53,7 +51,6 @@ contract HealthRegistry {
         bytes32 indexed grantId,
         bytes32 indexed patientId,
         bytes32 indexed doctorId,
-        bytes32 hospitalId,
         uint256 expiry
     );
     event GrantRevoked(bytes32 indexed grantId);
@@ -105,31 +102,29 @@ contract HealthRegistry {
 
     function createGrant(
         bytes32 doctorId,
-        bytes32 hospitalId,
-        bytes calldata encryptedPointerForDoctor,
+        bytes[] calldata encryptedPointersForDoctor,
         uint256 expiry,
         bytes calldata patientSig
     ) external returns (bytes32) {
         bytes32 patientId = walletToPatientId[msg.sender];
         require(patientId != bytes32(0), "not registered as patient");
         require(_doctors[doctorId].wallet != address(0), "unknown doctor");
-        require(_hospitals[hospitalId].wallet != address(0), "unknown hospital");
         require(expiry > block.timestamp, "expiry in past");
 
-        bytes32 grantId = keccak256(abi.encodePacked(patientId, doctorId, hospitalId, expiry, ++_nonce));
-        _grants[grantId] = AccessGrant({
-            grantId:                   grantId,
-            patientId:                 patientId,
-            doctorId:                  doctorId,
-            hospitalId:                hospitalId,
-            encryptedPointerForDoctor: encryptedPointerForDoctor,
-            patientSig:                patientSig,
-            expiry:                    expiry,
-            revoked:                   false,
-            used:                      false
-        });
+        bytes32 grantId = keccak256(abi.encodePacked(patientId, doctorId, expiry, ++_nonce));
 
-        emit GrantCreated(grantId, patientId, doctorId, hospitalId, expiry);
+        AccessGrant storage g = _grants[grantId];
+        g.grantId    = grantId;
+        g.patientId  = patientId;
+        g.doctorId   = doctorId;
+        g.patientSig = patientSig;
+        g.expiry     = expiry;
+        g.revoked    = false;
+        for (uint256 i = 0; i < encryptedPointersForDoctor.length; i++) {
+            g.encryptedPointersForDoctor.push(encryptedPointersForDoctor[i]);
+        }
+
+        emit GrantCreated(grantId, patientId, doctorId, expiry);
         return grantId;
     }
 
@@ -145,11 +140,8 @@ contract HealthRegistry {
         bytes32 hospitalId = walletToHospitalId[msg.sender];
         require(hospitalId != bytes32(0), "not registered as hospital");
         AccessGrant storage g = _grants[grantId];
-        require(g.hospitalId == hospitalId, "wrong hospital");
         require(!g.revoked, "revoked");
-        require(!g.used, "already used");
         require(block.timestamp <= g.expiry, "expired");
-        g.used = true;
         emit AccessLogged(grantId, g.patientId, hospitalId, recordHash);
     }
 

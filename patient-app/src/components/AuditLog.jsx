@@ -24,7 +24,6 @@ export default function AuditLog({ provider, patientId }) {
             label: 'Metadata disclosed (grant created)',
             grantId: e.args.grantId,
             doctorId: e.args.doctorId,
-            hospitalId: e.args.hospitalId,
             txHash: e.transactionHash,
           };
         })

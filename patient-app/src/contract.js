@@ -13,7 +13,6 @@ const EIP712_DOMAIN = {
 const PATIENT_GRANT_TYPES = {
   PatientGrantAuth: [
     { name: 'doctorId', type: 'bytes32' },
-    { name: 'hospitalId', type: 'bytes32' },
     { name: 'expiry', type: 'uint256' },
   ],
 };
@@ -74,7 +73,7 @@ export async function getPointers(provider, patientId) {
   return contract.getPointers(patientId);
 }
 
-export async function createGrant(signer, { doctorId, hospitalId, encryptedPointerForDoctor, expiry }) {
+export async function createGrant(signer, { doctorId, encryptedPointersForDoctor, expiry }) {
   const contract = getContract(signer);
   const network = await signer.provider.getNetwork();
 
@@ -86,14 +85,12 @@ export async function createGrant(signer, { doctorId, hospitalId, encryptedPoint
 
   const patientSig = await signer.signTypedData(domain, PATIENT_GRANT_TYPES, {
     doctorId,
-    hospitalId,
     expiry,
   });
 
   const tx = await contract.createGrant(
     doctorId,
-    hospitalId,
-    encryptedPointerForDoctor,
+    encryptedPointersForDoctor,
     expiry,
     patientSig
   );
