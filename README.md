@@ -1,6 +1,8 @@
 # Decentralized Health Record Network
 
 A mock system for locating and accessing patient medical records across hospitals. Records stay at hospitals; only encrypted pointers appear in a global on-chain registry. The patient controls who can decrypt those pointers. Every successful record access is recorded on-chain.
+---
+Video demo: https://www.youtube.com/watch?v=l8YNNrzmV4E
 
 ---
 
