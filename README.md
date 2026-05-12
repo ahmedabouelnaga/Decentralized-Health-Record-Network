@@ -276,7 +276,7 @@ Follow these steps in order to navigate and test all features of the system.
 - MetaMask on **Sepolia** with two funded accounts (patient + doctor)
 - Patient app: https://patient-app-tan.vercel.app/
 - Doctor app: https://doctor-app-liart-two.vercel.app/
-- Hospital server: https://dhrn-blockchain.onrender.com
+- Hospital server: https://dhrn-blockchain.onrender.com **NOTE: Render shuts down the server after ~15 minutes deleting all records. If you wait too long to request a record from the hospital you will likely get an error that it no longer exists**
 
 **Using local Anvil instead:**
 - All five terminals running (see [Running the Stack Locally](#running-the-stack-locally-anvil) above)
