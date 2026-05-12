@@ -1,0 +1,225 @@
+[
+  {
+    "type": "function",
+    "name": "registerPatient",
+    "inputs": [{ "name": "pubKey", "type": "bytes" }],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerDoctor",
+    "inputs": [{ "name": "pubKey", "type": "bytes" }],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "registerHospital",
+    "inputs": [
+      { "name": "pubKey", "type": "bytes" },
+      { "name": "endpoint", "type": "string" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "addPointer",
+    "inputs": [{ "name": "encryptedPointer", "type": "bytes" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "createGrant",
+    "inputs": [
+      { "name": "doctorId", "type": "bytes32" },
+      { "name": "encryptedPointersForDoctor", "type": "bytes[]" },
+      { "name": "expiry", "type": "uint256" },
+      { "name": "patientSig", "type": "bytes" }
+    ],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "revokeGrant",
+    "inputs": [{ "name": "grantId", "type": "bytes32" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "logAccess",
+    "inputs": [
+      { "name": "grantId", "type": "bytes32" },
+      { "name": "recordHash", "type": "bytes32" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "postMessage",
+    "inputs": [
+      { "name": "recipientId", "type": "bytes32" },
+      { "name": "messageType", "type": "bytes32" },
+      { "name": "payload", "type": "bytes" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getPointers",
+    "inputs": [{ "name": "patientId", "type": "bytes32" }],
+    "outputs": [{ "name": "", "type": "bytes[]" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getGrant",
+    "inputs": [{ "name": "grantId", "type": "bytes32" }],
+    "outputs": [
+      {
+        "name": "",
+        "type": "tuple",
+        "components": [
+          { "name": "grantId", "type": "bytes32" },
+          { "name": "patientId", "type": "bytes32" },
+          { "name": "doctorId", "type": "bytes32" },
+          { "name": "encryptedPointersForDoctor", "type": "bytes[]" },
+          { "name": "patientSig", "type": "bytes" },
+          { "name": "expiry", "type": "uint256" },
+          { "name": "revoked", "type": "bool" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getPatient",
+    "inputs": [{ "name": "patientId", "type": "bytes32" }],
+    "outputs": [
+      { "name": "", "type": "bytes32" },
+      { "name": "", "type": "bytes" },
+      { "name": "", "type": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getDoctor",
+    "inputs": [{ "name": "doctorId", "type": "bytes32" }],
+    "outputs": [
+      { "name": "", "type": "bytes32" },
+      { "name": "", "type": "bytes" },
+      { "name": "", "type": "address" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getHospital",
+    "inputs": [{ "name": "hospitalId", "type": "bytes32" }],
+    "outputs": [
+      { "name": "", "type": "bytes32" },
+      { "name": "", "type": "bytes" },
+      { "name": "", "type": "address" },
+      { "name": "", "type": "string" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "walletToPatientId",
+    "inputs": [{ "name": "", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "walletToDoctorId",
+    "inputs": [{ "name": "", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "walletToHospitalId",
+    "inputs": [{ "name": "", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bytes32" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "PatientRegistered",
+    "inputs": [
+      { "name": "patientId", "type": "bytes32", "indexed": true },
+      { "name": "wallet", "type": "address", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "DoctorRegistered",
+    "inputs": [
+      { "name": "doctorId", "type": "bytes32", "indexed": true },
+      { "name": "wallet", "type": "address", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "HospitalRegistered",
+    "inputs": [
+      { "name": "hospitalId", "type": "bytes32", "indexed": true },
+      { "name": "wallet", "type": "address", "indexed": false },
+      { "name": "endpoint", "type": "string", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "PointerAdded",
+    "inputs": [
+      { "name": "patientId", "type": "bytes32", "indexed": true },
+      { "name": "index", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "GrantCreated",
+    "inputs": [
+      { "name": "grantId", "type": "bytes32", "indexed": true },
+      { "name": "patientId", "type": "bytes32", "indexed": true },
+      { "name": "doctorId", "type": "bytes32", "indexed": true },
+      { "name": "expiry", "type": "uint256", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "GrantRevoked",
+    "inputs": [
+      { "name": "grantId", "type": "bytes32", "indexed": true }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "AccessLogged",
+    "inputs": [
+      { "name": "grantId", "type": "bytes32", "indexed": true },
+      { "name": "patientId", "type": "bytes32", "indexed": true },
+      { "name": "hospitalId", "type": "bytes32", "indexed": true },
+      { "name": "recordHash", "type": "bytes32", "indexed": false }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "EncryptedMessage",
+    "inputs": [
+      { "name": "recipientId", "type": "bytes32", "indexed": true },
+      { "name": "messageType", "type": "bytes32", "indexed": true },
+      { "name": "payload", "type": "bytes", "indexed": false }
+    ]
+  }
+]

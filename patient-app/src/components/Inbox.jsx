@@ -7,6 +7,7 @@ export default function Inbox({ provider, signer, patientId, identity, liveMessa
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(null);
   const [statuses, setStatuses] = useState({});
+  const [copied, setCopied] = useState(null);
 
   useEffect(() => { loadPast(); }, [patientId]);
 
@@ -98,8 +99,20 @@ export default function Inbox({ provider, signer, patientId, identity, liveMessa
 
         {isRequest && (
           <div style={{ fontSize: '0.8rem', color: '#374151', marginBottom: 12 }}>
-            <p><strong>Doctor:</strong>{' '}
+            <p style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <strong>Doctor:</strong>{' '}
               <span className="mono">{item.data.doctorId?.slice(0, 22)}…</span>
+              <button
+                className="btn btn-secondary"
+                style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(item.data.doctorId);
+                  setCopied(item.id);
+                  setTimeout(() => setCopied(null), 1500);
+                }}
+              >
+                {copied === item.id ? 'Copied!' : 'Copy ID'}
+              </button>
             </p>
             <p><strong>Justification:</strong> {item.data.justification}</p>
             <p><strong>Requested types:</strong> {item.data.requestedRecordTypes?.join(', ')}</p>
@@ -141,7 +154,10 @@ export default function Inbox({ provider, signer, patientId, identity, liveMessa
 
   return (
     <div>
-      <p className="section-title">Inbox</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <p className="section-title" style={{ margin: 0 }}>Inbox</p>
+        <button className="btn btn-secondary" onClick={loadPast}>Refresh</button>
+      </div>
       {!items.length && <div className="card empty">No messages yet.</div>}
       {items.map(renderItem)}
     </div>

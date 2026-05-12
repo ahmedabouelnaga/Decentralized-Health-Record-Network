@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import ABI from '../../shared/abi.json';
+import ABI from './abi.json';
 
 const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 const DEPLOYMENT_BLOCK = Number(import.meta.env.VITE_DEPLOYMENT_BLOCK ?? 0);

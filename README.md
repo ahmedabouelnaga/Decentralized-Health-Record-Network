@@ -10,9 +10,9 @@ The web apps are deployed and live. No local setup needed to use them (although 
 
 | App | URL |
 |---|---|
-| Patient Portal | https://dhrn-patient-portal.vercel.app/ |
-| Doctor Portal | https://dhrn-doctor-portal.vercel.app/ |
-| Smart Contract | https://sepolia.etherscan.io/address/0x31C8AA1b256F8ccc69dd114A6D0332Fc114520ED |
+| Patient Portal | https://patient-app-tan.vercel.app/ |
+| Doctor Portal | https://doctor-app-liart-two.vercel.app/ |
+| Smart Contract | https://sepolia.etherscan.io/address/0x1f28314414135161a7d3aAd1AfBb735127C36bf3 |
 
 **You will need to download the Metamask extension on your browser of choice for both the online and local demos. Follow instructions in https://metamask.io/.**
 
@@ -30,9 +30,9 @@ The web apps are deployed and live. No local setup needed to use them (although 
 | Component | Description | URL / Port |
 |---|---|---|
 | `contracts/` | Solidity smart contract + Foundry tests | Deployed on Sepolia |
-| `hospital-server/` | Node/Express server; stores records, serves fetch requests | https://decentralized-health-record-network.onrender.com |
-| `patient-app/` | React app; patient registration, inbox, grants, audit log | https://dhrn-patient-portal.vercel.app/ |
-| `doctor-app/` | React app; doctor registration, grant list, record fetching | https://dhrn-doctor-portal.vercel.app/ |
+| `hospital-server/` | Node/Express server; stores records, serves fetch requests | https://dhrn-blockchain.onrender.com |
+| `patient-app/` | React app; patient registration, inbox, grants, audit log | https://patient-app-tan.vercel.app/ |
+| `doctor-app/` | React app; doctor registration, grant list, record fetching | https://doctor-app-liart-two.vercel.app/ |
 | `shared/` | Shared contract ABI used by all three runtime components | — |
 
 ---
@@ -272,9 +272,9 @@ Follow these steps in order to navigate and test all features of the system.
 
 **Using the live deployment (recommended):**
 - MetaMask on **Sepolia** with two funded accounts (patient + doctor)
-- Patient app: https://dhrn-patient-portal.vercel.app/
-- Doctor app: https://dhrn-doctor-portal.vercel.app/
-- Hospital server: already running at https://decentralized-health-record-network.onrender.com — no setup needed
+- Patient app: https://patient-app-tan.vercel.app/
+- Doctor app: https://doctor-app-liart-two.vercel.app/
+- Hospital server: https://dhrn-blockchain.onrender.com
 
 **Using local Anvil instead:**
 - All five terminals running (see [Running the Stack Locally](#running-the-stack-locally-anvil) above)
@@ -284,7 +284,7 @@ Follow these steps in order to navigate and test all features of the system.
 
 ### Phase 1 — Register as Patient
 
-1. Open **https://dhrn-patient-portal.vercel.app/** in your browser (or http://localhost:5173 if running locally)
+1. Open **https://patient-app-tan.vercel.app/** in your browser (or http://localhost:5173 if running locally)
 2. Make sure MetaMask is on the **Sepolia** network (or Anvil if running locally) and the **Patient** account is selected
 3. Click **Connect Wallet** → approve in MetaMask
 4. Click **Register** → approve the transaction in MetaMask
@@ -294,7 +294,7 @@ Follow these steps in order to navigate and test all features of the system.
 
 ### Phase 2 — Register as Doctor
 
-1. Open **https://dhrn-doctor-portal.vercel.app/** in a new tab (or http://localhost:5174 if running locally)
+1. Open **https://doctor-app-liart-two.vercel.app/** in a new tab (or http://localhost:5174 if running locally)
 2. Switch MetaMask to the **Doctor** account
 3. Click **Connect Wallet** → approve
 4. Click **Register** → approve the transaction
@@ -307,7 +307,7 @@ Follow these steps in order to navigate and test all features of the system.
 Run this in a terminal (replace `PATIENT_ID` with the ID you saved in Phase 1):
 
 ```bash
-curl -X POST https://decentralized-health-record-network.onrender.com/records/admin/add \
+curl -X POST https://dhrn-blockchain.onrender.com/records/admin/add \
   -H "Content-Type: application/json" \
   -d '{
     "patientId": "PATIENT_ID",
@@ -336,7 +336,7 @@ Expected response:
 
 ### Phase 4 — Patient Receives the Record
 
-1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/), switch MetaMask to **Patient**
+1. Go to **patient app**, switch MetaMask to **Patient**
 2. Click the **Inbox** tab
 3. A **POINTER_HANDOFF** message appears showing record type and timestamp
 4. Click **Accept** → approve the transaction in MetaMask
@@ -346,7 +346,7 @@ Expected response:
 
 ### Phase 5 — Doctor Requests Access
 
-1. Go to **doctor app** (https://dhrn-doctor-portal.vercel.app/), switch MetaMask to **Doctor**
+1. Go to **doctor app**, switch MetaMask to **Doctor**
 2. Click the **Request Access** tab
 3. Fill in:
    - **Patient ID:** paste the patient ID from Phase 1
@@ -359,7 +359,7 @@ Expected response:
 
 ### Phase 6 — Patient Creates a Grant
 
-1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/), switch MetaMask to **Patient**
+1. Go to **patient app**, switch MetaMask to **Patient**
 2. Click **Inbox** — an **ACCESS_REQUEST** from the doctor appears showing their justification
 3. Go to the **Grants** tab → click **Create Grant**
 4. Fill in:
@@ -372,7 +372,7 @@ Expected response:
 
 ### Phase 7 — Doctor Fetches the Record
 
-1. Go to **doctor app** (https://dhrn-doctor-portal.vercel.app/), switch MetaMask to **Doctor**
+1. Go to **doctor app**, switch MetaMask to **Doctor**
 2. Click **My Grants** → click **Refresh**
 3. The grant appears with status **Active** and shows the number of available records
 4. Click **View Records** — the app decrypts the pointer list and shows each record's type, key, and date
@@ -388,7 +388,7 @@ Expected response:
 
 ### Phase 8 — Check the Audit Log
 
-1. Go to **patient app** (https://dhrn-patient-portal.vercel.app/) → click **Audit Log** tab
+1. Go to **patient app** → click **Audit Log** tab
 2. You should see two entries:
    - 🟠 **Tier 1** (orange) — "Metadata disclosed (grant created)" — logged when you created the grant
    - 🔵 **Tier 2** (blue) — "Record fetched (content access)" — logged when the doctor fetched the record
